@@ -1,0 +1,368 @@
+<html lang="en" vid="0"><head vid="1">
+<meta charset="UTF-8" vid="2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+<title vid="4">Knit Kiosk</title>
+<script src="https://cdn.tailwindcss.com/3.4.17" vid="5"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" vid="6">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="7">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet" vid="8">
+<style vid="9">
+    body {
+        font-family: 'JetBrains Mono', monospace;
+        background-color: #F4F2EC;
+        color: #222222;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    
+    .receipt-clip {
+        clip-path: inset(0 -100px -100px -100px);
+    }
+
+    @keyframes print-steps {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(0); }
+    }
+
+    @keyframes led-blink {
+        0%, 100% { background-color: #F4F2EC; }
+        50% { background-color: #ff3333; }
+    }
+
+    @keyframes drop-fade {
+        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(300px) rotate(10deg); opacity: 0; }
+    }
+
+    .animate-print {
+        animation: print-steps 3s steps(30, end) forwards;
+    }
+
+    .animate-blink {
+        animation: led-blink 0.15s infinite;
+        border-color: #ff3333;
+    }
+
+    .animate-tear {
+        animation: drop-fade 0.8s ease-in forwards;
+    }
+
+    .zigzag-edge {
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 100%;
+        height: 8px;
+        background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSI4IiB2aWV3Qm94PSIwIDAgMTAgOCI+PHBvbHlnb24gZmlsbD0iI2ZmZiIgcG9pbnRzPSIwLDAgMTAsMCA1LDgiLz48L3N2Zz4=');
+        background-repeat: repeat-x;
+        background-position: bottom left;
+    }
+
+    .key-active:active {
+        background-color: #222222;
+        color: #ffffff;
+    }
+
+    .key-print-active:active {
+        background-color: #ff3333;
+        color: #ffffff;
+    }
+</style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-between" vid="10">
+
+    <div class="w-full flex-1 flex flex-col items-center justify-end pb-8 relative z-10" vid="11">
+        
+        <div class="relative flex flex-col items-center w-full max-w-2xl" vid="12">
+            
+            <div class="text-xs tracking-[0.3em] font-bold mb-3 z-30" vid="13">RECEIPT</div>
+            
+            <div class="w-[520px] h-[46px] rounded-full border-2 border-[#222222] bg-[#F4F2EC] flex items-center px-4 relative z-30" vid="14">
+                <div id="status-led" class="w-2.5 h-2.5 rounded-full border border-[#222222] mr-4 transition-colors" vid="15"></div>
+                <div class="flex-1 h-1 bg-[#222222] rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]" vid="16"></div>
+            </div>
+
+            <div class="absolute top-[34px] left-1/2 -translate-x-1/2 w-[360px] h-[800px] z-20 pointer-events-none receipt-clip" vid="17">
+                <div id="receipt-container" class="absolute top-0 left-0 w-full bg-white text-[#222222] flex flex-col shadow-xl transform -translate-y-full pb-[8px]" vid="18">
+                    <div id="receipt-content" class="p-6 flex flex-col relative w-full h-full pointer-events-none" vid="19"></div>
+                    <div class="zigzag-edge" vid="20"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-14 w-[720px] h-[88px] rounded-[24px] border-2 border-[#222222] flex items-center justify-center text-[40px] tracking-[0.2em] relative z-10 bg-[#F4F2EC]" vid="21">
+            <span id="input-display" class="uppercase font-bold" vid="22"></span>
+            <span id="cursor" class="w-[4px] h-[44px] bg-[#222222] ml-2 animate-pulse" vid="23"></span>
+            <span id="placeholder" class="absolute text-gray-400 tracking-[0.2em] uppercase font-bold pointer-events-none" vid="24">TYPE A WORD</span>
+        </div>
+
+        <div class="mt-8 flex items-center gap-4 cursor-pointer group z-10" onclick="toggleCheckbox()" vid="25">
+            <div class="w-[24px] h-[24px] border-2 border-[#222222] flex items-center justify-center bg-[#F4F2EC]" vid="26">
+                <svg id="checkmark" class="w-4 h-4 text-[#ff3333] hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="27">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" vid="28"></path>
+                </svg>
+            </div>
+            <span class="text-[20px] font-bold select-none group-hover:opacity-80" vid="29">Print knitting pattern</span>
+        </div>
+
+    </div>
+
+    <div class="w-full h-[60%] flex flex-col items-center justify-center gap-4 pb-12 z-10 bg-[#F4F2EC]" vid="30">
+        <div id="keyboard" class="flex flex-col gap-4 items-center" vid="31"></div>
+    </div>
+
+<script vid="32">
+    const fontMap = {
+        'A': ['01110','10001','11111','10001','10001'],
+        'B': ['11110','10001','11110','10001','11110'],
+        'C': ['01111','10000','10000','10000','01111'],
+        'D': ['11110','10001','10001','10001','11110'],
+        'E': ['11111','10000','11110','10000','11111'],
+        'F': ['11111','10000','11110','10000','10000'],
+        'G': ['01111','10000','10111','10001','01111'],
+        'H': ['10001','10001','11111','10001','10001'],
+        'I': ['11111','00100','00100','00100','11111'],
+        'J': ['00001','00001','00001','10001','01110'],
+        'K': ['10001','10010','11100','10010','10001'],
+        'L': ['10000','10000','10000','10000','11111'],
+        'M': ['10001','11011','10101','10001','10001'],
+        'N': ['10001','11001','10101','10011','10001'],
+        'O': ['01110','10001','10001','10001','01110'],
+        'P': ['11110','10001','11110','10000','10000'],
+        'Q': ['01110','10001','10101','10010','01101'],
+        'R': ['11110','10001','11110','10010','10001'],
+        'S': ['01111','10000','01110','00001','11110'],
+        'T': ['11111','00100','00100','00100','00100'],
+        'U': ['10001','10001','10001','10001','01110'],
+        'V': ['10001','10001','10001','01010','00100'],
+        'W': ['10001','10001','10101','11011','10001'],
+        'X': ['10001','01010','00100','01010','10001'],
+        'Y': ['10001','01010','00100','00100','00100'],
+        'Z': ['11111','00010','00100','01000','11111'],
+        ' ': ['00000','00000','00000','00000','00000']
+    };
+
+    let inputValue = '';
+    let printPattern = false;
+    let isPrinting = false;
+    let canTear = false;
+    const MAX_LENGTH = 12;
+
+    const displayEl = document.getElementById('input-display');
+    const placeholderEl = document.getElementById('placeholder');
+    const cursorEl = document.getElementById('cursor');
+    const checkmarkEl = document.getElementById('checkmark');
+    const receiptContainer = document.getElementById('receipt-container');
+    const receiptContent = document.getElementById('receipt-content');
+    const ledEl = document.getElementById('status-led');
+    const keyboardEl = document.getElementById('keyboard');
+
+    const keyboardLayout = [
+        ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+        ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+        ['DELETE', 'Z', 'X', 'C', 'V', 'B', 'N', 'M'],
+        ['SPACE', 'PRINT']
+    ];
+
+    function renderKeyboard() {
+        keyboardLayout.forEach(row => {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'flex gap-4';
+            
+            row.forEach(key => {
+                const btn = document.createElement('div');
+                btn.textContent = key;
+                btn.onclick = () => handleKey(key);
+                
+                let baseClass = 'border-2 border-[#222222] flex items-center justify-center text-2xl font-bold cursor-pointer transition-colors duration-75 select-none ';
+                
+                if (key === 'DELETE') {
+                    btn.className = baseClass + 'w-[180px] h-[76px] rounded-full key-active';
+                } else if (key === 'SPACE') {
+                    btn.className = baseClass + 'w-[400px] h-[76px] rounded-full text-transparent key-active';
+                } else if (key === 'PRINT') {
+                    btn.className = 'w-[180px] h-[76px] rounded-full border-2 border-[#ff3333] text-[#ff3333] flex items-center justify-center text-2xl font-bold cursor-pointer transition-colors duration-75 select-none key-print-active';
+                } else {
+                    btn.className = baseClass + 'w-[76px] h-[76px] rounded-full key-active';
+                }
+                
+                rowDiv.appendChild(btn);
+            });
+            keyboardEl.appendChild(rowDiv);
+        });
+    }
+
+    function updateDisplay() {
+        displayEl.textContent = inputValue;
+        if (inputValue.length > 0) {
+            placeholderEl.style.display = 'none';
+        } else {
+            placeholderEl.style.display = 'block';
+        }
+    }
+
+    function handleKey(key) {
+        if (isPrinting) return;
+
+        if (key === 'DELETE') {
+            inputValue = inputValue.slice(0, -1);
+        } else if (key === 'SPACE') {
+            if (inputValue.length < MAX_LENGTH) {
+                inputValue += ' ';
+            }
+        } else if (key === 'PRINT') {
+            triggerPrint();
+            return;
+        } else {
+            if (inputValue.length < MAX_LENGTH) {
+                inputValue += key;
+            }
+        }
+        updateDisplay();
+    }
+
+    function toggleCheckbox() {
+        if (isPrinting) return;
+        printPattern = !printPattern;
+        if (printPattern) {
+            checkmarkEl.classList.remove('hidden');
+        } else {
+            checkmarkEl.classList.add('hidden');
+        }
+    }
+
+    function generateChartData(text) {
+        let grid = [];
+        for(let row=0; row<5; row++) {
+            let rowStr = '';
+            for(let i=0; i<text.length; i++) {
+                let char = text[i].toUpperCase();
+                let map = fontMap[char] || fontMap[' '];
+                rowStr += map[row];
+                if (i < text.length - 1) rowStr += '0';
+            }
+            grid.push(rowStr);
+        }
+        return grid;
+    }
+
+    function buildReceiptHTML() {
+        const orderNum = Math.floor(Math.random() * 90000) + 10000;
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const dateStr = now.toLocaleDateString();
+        
+        let html = `
+            <div class="text-center font-bold mb-6 tracking-[0.2em] text-xl">KNIT/KIOSK</div>
+            <div class="flex justify-between text-xs mb-1 font-bold">
+                <span>ORDER #${orderNum}</span>
+                <span>${timeStr}</span>
+            </div>
+            <div class="flex justify-between text-xs mb-6 font-bold">
+                <span>DATE</span>
+                <span>${dateStr}</span>
+            </div>
+            <div class="w-full border-t-[2px] border-dashed border-[#222222] my-4"></div>
+            <div class="text-center text-4xl tracking-[0.2em] font-bold my-10 uppercase break-words leading-tight">${inputValue}</div>
+        `;
+
+        if (printPattern) {
+            html += `
+                <div class="w-full border-t-[2px] border-dashed border-[#222222] my-4"></div>
+                <div class="text-xs mb-3 font-bold">PATTERN GRID:</div>
+            `;
+            
+            const chartData = generateChartData(inputValue);
+            const cols = chartData[0].length;
+            const rows = chartData.length;
+            
+            html += `<div class="grid gap-[1px] bg-[#222222] border-[2px] border-[#222222] mx-auto p-[2px] w-fit" style="grid-template-columns: repeat(${cols}, 4px);">`;
+            
+            for(let r=0; r<rows; r++) {
+                for(let c=0; c<cols; c++) {
+                    const isFilled = chartData[r][c] === '1';
+                    const bgClass = isFilled ? 'bg-[#222222]' : 'bg-white';
+                    html += `<div class="w-[4px] h-[4px] ${bgClass}"></div>`;
+                }
+            }
+            html += `</div>`;
+            
+            html += `<div class="text-[10px] mt-3 text-center font-bold">${cols} STITCHES × ${rows} ROWS</div>`;
+            html += `
+                <div class="flex justify-center gap-6 text-[10px] mt-4 mb-6 font-bold">
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 bg-[#222222]"></div> CONTRAST</div>
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 border-[2px] border-[#222222] bg-white"></div> MAIN</div>
+                </div>
+            `;
+        }
+
+        html += `
+            <div class="w-full border-t-[2px] border-dashed border-[#222222] my-4"></div>
+            <div class="flex justify-between text-sm mb-2 font-bold">
+                <span>LETTERS</span>
+                <span>${inputValue.length}</span>
+            </div>
+            <div class="flex justify-between text-lg font-bold mt-4 mb-10">
+                <span>TOTAL</span>
+                <span>£0.00</span>
+            </div>
+            <div id="tear-prompt" class="text-center text-[11px] tracking-widest mt-auto opacity-0 font-bold">CLICK TO TEAR OFF</div>
+        `;
+        
+        return html;
+    }
+
+    function triggerPrint() {
+        if (isPrinting || inputValue.trim() === '') return;
+        
+        isPrinting = true;
+        canTear = false;
+        
+        receiptContainer.classList.remove('animate-print', 'animate-tear');
+        receiptContainer.style.transform = 'translateY(-100%)';
+        
+        receiptContent.innerHTML = buildReceiptHTML();
+        
+        ledEl.classList.add('animate-blink');
+        
+        requestAnimationFrame(() => {
+            receiptContainer.classList.add('animate-print');
+            
+            setTimeout(() => {
+                ledEl.classList.remove('animate-blink');
+                const prompt = document.getElementById('tear-prompt');
+                if(prompt) {
+                    prompt.style.opacity = '1';
+                    prompt.classList.add('animate-pulse');
+                }
+                canTear = true;
+                receiptContainer.classList.add('cursor-pointer');
+                receiptContainer.style.pointerEvents = 'auto';
+            }, 3000); 
+        });
+    }
+
+    receiptContainer.addEventListener('click', () => {
+        if (!canTear) return;
+        
+        canTear = false;
+        receiptContainer.style.pointerEvents = 'none';
+        receiptContainer.classList.remove('animate-print');
+        receiptContainer.classList.add('animate-tear');
+        
+        setTimeout(() => {
+            inputValue = '';
+            updateDisplay();
+            receiptContainer.style.transform = 'translateY(-100%)';
+            receiptContainer.classList.remove('animate-tear');
+            isPrinting = false;
+        }, 800);
+    });
+
+    renderKeyboard();
+    updateDisplay();
+</script>
+
+</body></html>
