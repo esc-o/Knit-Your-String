@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knit Your String</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23F4F2EC'/%3E%3Crect x='3' y='7' width='10' height='2' fill='%23222'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+
+    body {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      background: #F4F2EC;
+      color: #222222;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    button, .key { font-family: inherit; }
+
+    .screen {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 22px;
+      position: relative;
+      z-index: 20;
+    }
+
+    .printer {
+      position: relative;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 56px;
+    }
+
+    .slot-label {
+      font-size: 12px;
+      letter-spacing: 0.3em;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .slot {
+      width: min(520px, calc(100vw - 48px));
+      height: 46px;
+      border-radius: 999px;
+      border: 2px solid #222222;
+      background: #F4F2EC;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+    }
+
+    .led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid #222222;
+      margin-right: 16px;
+      flex: 0 0 auto;
+      background: #F4F2EC;
+    }
+
+    .led.is-busy {
+      animation: led-blink 0.15s infinite;
+      border-color: #ff3333;
+    }
+
+    .mouth {
+      flex: 1;
+      height: 4px;
+      border-radius: 999px;
+      background: #222222;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .input-bar {
+      width: min(720px, calc(100vw - 32px));
+      height: 88px;
+      border-radius: 24px;
+      border: 2px solid #222222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: #F4F2EC;
+      z-index: 10;
+    }
+
+    #input-display {
+      font-size: 40px;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      text-transform: uppercase;
+      max-width: calc(100% - 36px);
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .caret {
+      width: 4px;
+      height: 44px;
+      background: #222222;
+      margin-left: 8px;
+      animation: caret-blink 1s steps(1, end) infinite;
+    }
+
+    #placeholder {
+      position: absolute;
+      color: #9a9a9a;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 700;
+      font-size: 28px;
+      pointer-events: none;
+    }
+
+    .pattern-toggle {
+      margin-top: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      color: inherit;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .pattern-toggle span:last-child {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .check {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #222222;
+      background: #F4F2EC;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .check svg { width: 16px; height: 16px; color: #ff3333; }
+    .hidden { display: none; }
+
+    .board {
+      height: 56%;
+      min-height: 280px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 12px 28px;
+      background: #F4F2EC;
+      position: relative;
+      z-index: 1;
+    }
+
+    #keyboard {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+      transform-origin: center bottom;
+    }
+
+    .key-row { display: flex; gap: 16px; }
+
+    .key {
+      border: 2px solid #222222;
+      background: #F4F2EC;
+      color: #222222;
+      height: 76px;
+      width: 76px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .key-delete { width: 180px; }
+    .key-space { width: 400px; }
+    .key-print {
+      width: 180px;
+      border-color: #ff3333;
+      color: #ff3333;
+    }
+
+    .key.is-down,
+    .key:active {
+      background: #222222;
+      color: #ffffff;
+    }
+
+    .key-print.is-down,
+    .key-print:active {
+      background: #ff3333;
+      color: #ffffff;
+    }
+
+    .receipt-pop {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .receipt-pop.is-open {
+      display: flex;
+      pointer-events: auto;
+    }
+
+    .receipt-window {
+      width: 100%;
+      height: 0;
+      overflow: hidden;
+      pointer-events: auto;
+    }
+
+    .receipt-window.can-scroll { overflow-y: auto; }
+
+    .receipt-window canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 14px 18px rgba(34, 34, 34, 0.16));
+    }
+
+    .receipt-actions {
+      display: none;
+      width: 100%;
+      gap: 12px;
+      margin-top: 0;
+      padding: 12px 0 4px;
+      background: #F4F2EC;
+      justify-content: center;
+      align-self: stretch;
+      pointer-events: auto;
+    }
+
+    .receipt-actions.is-visible { display: flex; }
+
+    .receipt-actions button {
+      height: 46px;
+      padding: 0 22px;
+      border-radius: 999px;
+      border: 2px solid #222222;
+      background: #ffffff;
+      color: #222222;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(34, 34, 34, 0.12);
+    }
+
+    #again-btn {
+      border-color: #ff3333;
+      color: #ff3333;
+    }
+
+    .receipt-actions button:active { transform: translateY(1px); }
+
+    .receipt-window::-webkit-scrollbar { width: 8px; }
+    .receipt-window::-webkit-scrollbar-thumb {
+      background: #222222;
+      border-radius: 99px;
+    }
+
+    @keyframes led-blink {
+      0%, 100% { background: #F4F2EC; }
+      50% { background: #ff3333; }
+    }
+
+    @keyframes caret-blink {
+      0%, 50% { opacity: 1; }
+      50.01%, 100% { opacity: 0; }
+    }
+
+    @media (max-height: 820px) {
+      .printer { margin-bottom: 28px; }
+      .input-bar { height: 72px; }
+      #input-display { font-size: 32px; }
+      .caret { height: 34px; }
+      #placeholder { font-size: 22px; }
+      .pattern-toggle { margin-top: 16px; }
+      .board { min-height: 240px; padding-bottom: 16px; }
+      .key { width: 64px; height: 64px; font-size: 20px; }
+      .key-delete, .key-print { width: 148px; }
+      .key-space { width: 280px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <div class="stage">
+      <div class="printer" id="printer">
+        <div class="slot-label">RECEIPT</div>
+        <div class="slot" id="slot">
+          <div id="status-led" class="led"></div>
+          <div class="mouth" id="mouth"></div>
+        </div>
+      </div>
+
+      <div id="receipt-pop" class="receipt-pop">
+        <div id="receipt-window" class="receipt-window"></div>
+        <div id="receipt-actions" class="receipt-actions">
+          <button type="button" id="download-btn">下载 PNG</button>
+          <button type="button" id="again-btn">再打一张</button>
+        </div>
+      </div>
+
+      <div class="input-bar" id="input-bar">
+        <span id="input-display"></span>
+        <span id="cursor" class="caret"></span>
+        <span id="placeholder">TYPE A WORD</span>
+      </div>
+
+      <button type="button" class="pattern-toggle" id="pattern-toggle">
+        <span class="check">
+          <svg id="checkmark" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </span>
+        <span>Print knitting pattern</span>
+      </button>
+    </div>
+
+    <div class="board">
+      <div id="keyboard"></div>
+    </div>
+  </div>
+
+  <script src="receipt.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
