@@ -1,5 +1,5 @@
 (function () {
-  var MAX_LENGTH = 12;
+  var MAX_LENGTH = 16;
   var PRINT_MS = 2500;
   var RETRACT_MS = 700;
 
@@ -129,15 +129,12 @@
     setLed(true);
     clearPaper();
 
-    var ready = document.fonts && document.fonts.load
-      ? document.fonts.load('700 64px "JetBrains Mono"')
-      : Promise.resolve();
-    ready.then(runPrint, runPrint);
+    runPrint();
   }
 
   function runPrint() {
     if (phase !== "printing") return;
-    canvas = window.drawReceipt(value, printPattern);
+    canvas = window.renderReceipt(value, { withPattern: printPattern }).canvas;
     receiptWindow.appendChild(canvas);
     receiptPop.classList.add("is-open");
     placePop();
@@ -240,7 +237,7 @@
       event.preventDefault();
       flashKey("PRINT");
       handleKey("PRINT");
-    } else if (/^[a-zA-Z]$/.test(key)) {
+    } else if (/^[a-zA-Z0-9]$/.test(key)) {
       event.preventDefault();
       flashKey(key.toUpperCase());
       handleKey(key.toUpperCase());
